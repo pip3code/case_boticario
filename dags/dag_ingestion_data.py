@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 from google.cloud import bigquery
 from google.cloud import storage
@@ -22,7 +21,7 @@ default_args = {
 }
 
 # configuracoes da dag
-dag = DAG('dag_ingest_vendas', default_args=default_args, schedule_interval='@0 15 * * *', catchup=False)
+dag = DAG('dag_ingest_data_v', default_args=default_args, schedule_interval='0 15 * * *', catchup=False)
 
 # busco as credenciais 
 fs = gcsfs.GCSFileSystem(project='caseBoti')

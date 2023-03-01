@@ -9,14 +9,13 @@ from airflow.sensors.external_task import ExternalTaskSensor
 from datetime import datetime, timedelta
 import gcsfs
 import json
-import sys
 from google.cloud import bigquery
 import pandas as pd
 
 # argumentos da dag
 default_args = {
     'owner': 'Diego Oliveira',
-    'start_date': datetime(2023, 2, 26),
+    'start_date': datetime(2023, 2, 27),
     'retries': 1,
     'retry_delay': timedelta(minutes=1)
 }
