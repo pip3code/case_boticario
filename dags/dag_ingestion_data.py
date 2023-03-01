@@ -21,16 +21,18 @@ default_args = {
     'retry_delay': timedelta(minutes=1)
 }
 
-dag = DAG('dag_ingest_vendas', default_args=default_args, schedule_interval='@daily')
+# configuracoes da dag
+dag = DAG('dag_ingest_vendas', default_args=default_args, schedule_interval='@0 15 * * *', catchup=False)
 
+# busco as credenciais 
 fs = gcsfs.GCSFileSystem(project='caseBoti')
 with fs.open('gs://southamerica-east1-composer-20882c00-bucket/credentials.json', 'r') as f:
     credentials = json.load(f)
     clientStorage = storage.Client.from_service_account_info(info=credentials)
     clientBigQuery = bigquery.Client.from_service_account_info(info=credentials)
 
-def execute_ingestion():
-    # parametros dos buckets
+def read_xls_bucket():
+ # parametros dos buckets
     bucket_name = 'docs_vendas'
     bucket = clientStorage.get_bucket(bucket_name)
 
@@ -48,7 +50,13 @@ def execute_ingestion():
 
             # concateno o resultado a variavel final de output
             df = pd.concat([df, temp_df])
+    return df
 
+def execute_ingestion():
+    dfIngest = pd.DataFrame()
+    
+    # ingestao dos dados do bucket com retorno em pandas
+    dfIngest = read_xls_bucket()
 
     # Id da minha tabela no meu dataset
     table = 'caseboti.dadosVendas.raw_vendas'
@@ -66,7 +74,7 @@ def execute_ingestion():
         write_disposition='WRITE_APPEND'
     )
     job = clientBigQuery.load_table_from_dataframe(
-        df, table, job_config=job_config
+        dfIngest, table, job_config=job_config
     )
 
     # Aguardo o carregamento e termino do JOB
@@ -119,6 +127,7 @@ def consolidate_tables():
     dfConsolidadoLinhaAnoMes.to_gbq(destination_table='dadosVendas.tb_agg_consolidado_linha_ano_mes', project_id=id_projeto, credentials=credentials, if_exists='append')
 
 
+# tasks 
 run_ingestion = PythonOperator(
     task_id='run_ingestion',
     python_callable=execute_ingestion,
@@ -131,5 +140,5 @@ run_consolidate_table = PythonOperator(
     dag=dag,
 )
 
-
+# sequencia de execuçao
 run_ingestion >> run_consolidate_table
